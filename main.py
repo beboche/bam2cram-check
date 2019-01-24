@@ -31,6 +31,8 @@ def parse_args():
     parser.add_argument('-b', help="File path to the BAM file", required=True)
     parser.add_argument('-c', help="File path to the CRAM file", required=True)
     parser.add_argument('-e', help="File path to the error file", required=False)
+    parser.add_argument('-r', help="File path to the genome reference fasta file", required=False)
+    parser.add_argument('-s', action='store_true', help="run in slurm environnment (generates srun -N1 -c1 commands)", required=False)
     parser.add_argument('--log', help="File path to the log file", required=False)
     parser.add_argument('-v', action='count')
     return parser.parse_args()
@@ -45,6 +47,17 @@ def main():
     if args.b and args.c:
         bam_path = args.b
         cram_path = args.c
+        #begin david
+        ref_path = ''
+        srun = ''
+        if args.r:
+            ref_path = args.r
+            if not os.path.isfile(ref_path):    
+               logging.error("This is not a file path: %s" % ref_path)
+               raise ValueError("This is not a file path: %s")                                                                                                                   
+        if args.s:
+           srun = "srun"
+        #end david
 
         if not utils.is_irods_path(bam_path) and not os.path.isfile(bam_path):
             logging.error("This is not a file path: %s" % bam_path)
@@ -55,7 +68,7 @@ def main():
             #sys.exit(1)
             raise ValueError("This is not a file path: %s")
 
-        errors = CompareStatsForFiles.compare_bam_and_cram_by_statistics(bam_path, cram_path)
+        errors = CompareStatsForFiles.compare_bam_and_cram_by_statistics(bam_path, cram_path, srun, ref_path)
         if errors:
             if args.e:
                 err_f = open(args.e, 'w')

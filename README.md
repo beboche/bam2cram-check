@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/wtsi-hgi/bam2cram-check.svg)](https://travis-ci.org/wtsi-hgi/bam2cram-check)
-[![codecov.io](https://codecov.io/github/wtsi-hgi/bam2cram-check/coverage.svg?branch=master)](https://codecov.io/github/wtsi-hgi/bam2cram-check?branch=master)
 
 # bam2cram-check
 
@@ -13,8 +11,12 @@ samtools >=1.3
 
 Usage:
 ```bash
-python main.py -b <bam_file> -c <cram_file> -e <err_file> --log <log_file>
+python main.py -b <bam_file> -c <cram_file> -e <err_file> --log <log_file> -s -r <ref_file>
 ```
+New features:
+-r R        File path to the genome reference fasta file
+-s          run in slurm environnment (generates srun -N1 -c1 commands)
+
 
 Or alternatively, there is also a shell script for checking a full directory of BAMs and CRAMs by submitting as a job to LSF for each pair of files converted:
 ```bash

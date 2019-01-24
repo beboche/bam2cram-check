@@ -16,16 +16,32 @@ class RunSamtoolsCommands:
         return proc.stdout
 
     @classmethod
-    def run_samtools_quickcheck(cls, fpath):
-        return cls._run_subprocess(['samtools', 'quickcheck', '-v', fpath])
+    def run_samtools_quickcheck(cls, fpath, srun, ref_path):
+        if srun:
+            return cls._run_subprocess(['srun', '-N1', '-c1', 'samtools', 'quickcheck', '-v', fpath])                   
+        else:    
+            return cls._run_subprocess(['samtools', 'quickcheck', '-v', fpath]) 
+        #return cls._run_subprocess(['samtools', 'quickcheck', '-v', fpath])
 
     @classmethod
-    def get_samtools_flagstat_output(cls, fpath):
-        return cls._run_subprocess(['samtools', 'flagstat', fpath])
+    def get_samtools_flagstat_output(cls, fpath, srun, ref_path):
+        if srun:
+            return cls._run_subprocess(['srun', '-N1', '-c1', 'samtools', 'flagstat', fpath])                           
+        else:
+            return cls._run_subprocess(['samtools', 'flagstat', fpath]) 
+        #return cls._run_subprocess(['samtools', 'flagstat', fpath])
 
     @classmethod
-    def get_samtools_stats_output(cls, fpath):
-        return cls._run_subprocess(['samtools', 'stats', fpath])
+    def get_samtools_stats_output(cls, fpath, srun, ref_path):
+        if ref_path != '' and srun:
+            return cls._run_subprocess(['srun', '-N1', '-c1', 'samtools', 'stats', fpath, '-r', ref_path])              
+        elif ref_path != '':
+            return cls._run_subprocess(['samtools', 'stats', fpath, '-r', ref_path])                                    
+        elif srun: 
+            return cls._run_subprocess(['srun', '-N1', '-c1', 'samtools', 'stats', fpath])                              
+        else:
+            return cls._run_subprocess(['samtools', 'stats', fpath]) 
+        #return cls._run_subprocess(['samtools', 'stats', fpath])
 
     @classmethod
     def get_samtools_version_output(cls):
@@ -42,10 +58,10 @@ class HandleSamtoolsStats:
 
 
     @classmethod
-    def _generate_stats(cls, data_fpath):
+    def _generate_stats(cls, data_fpath, srun, ref_path):
         if not data_fpath or not os.path.isfile(data_fpath):
             raise ValueError("Can't generate stats from a non-existing file: %s" % str(data_fpath))
-        return RunSamtoolsCommands.get_samtools_stats_output(data_fpath)
+        return RunSamtoolsCommands.get_samtools_stats_output(data_fpath, srun, ref_path)
 
 
     @classmethod
@@ -55,7 +71,7 @@ class HandleSamtoolsStats:
         return False
 
     @classmethod
-    def fetch_stats(cls, fpath, stats_fpath):
+    def fetch_stats(cls, fpath, stats_fpath, srun, ref_path):
         if not fpath or not os.path.isfile(fpath):
             raise ValueError("You need to give a valid file path if you want the stats")
         if os.path.isfile(stats_fpath) and not cls._is_stats_file_older_than_data(fpath, stats_fpath) and \
@@ -63,7 +79,7 @@ class HandleSamtoolsStats:
             stats = HandleSamtoolsStats._get_stats(stats_fpath)
             logging.info("Reading stats from file %s" % stats_fpath)
         else:
-            stats = HandleSamtoolsStats._generate_stats(fpath)
+            stats = HandleSamtoolsStats._generate_stats(fpath, srun, ref_path)
             logging.info("Generating stats for file %s" % fpath)
             if os.path.isfile(stats_fpath) and cls._is_stats_file_older_than_data(fpath, stats_fpath):
                 logging.warning("The stats file is older than the actual file, you need to remove/update it. "
@@ -177,7 +193,7 @@ class CompareStatsForFiles:
 
 
     @classmethod
-    def compare_bam_and_cram_by_statistics(cls, bam_path, cram_path):
+    def compare_bam_and_cram_by_statistics(cls, bam_path, cram_path, srun, ref_path):
         errors = []
         # Check that it's a valid file path
         if not bam_path or (not utils.is_irods_path(bam_path) and not os.path.isfile(bam_path)):
@@ -207,12 +223,12 @@ class CompareStatsForFiles:
 
         # Quickcheck the files before anything:
         try:
-            RunSamtoolsCommands.run_samtools_quickcheck(bam_path)
+            RunSamtoolsCommands.run_samtools_quickcheck(bam_path, srun, '')
         except RuntimeError as e:
             errors.append(str(e))
 
         try:
-            RunSamtoolsCommands.run_samtools_quickcheck(cram_path)
+            RunSamtoolsCommands.run_samtools_quickcheck(cram_path, srun, '')
         except RuntimeError as e:
             errors.append(str(e))
         if errors:
@@ -221,12 +237,12 @@ class CompareStatsForFiles:
 
         # Calculate and compare flagstat:
         try:
-            flagstat_b = RunSamtoolsCommands.get_samtools_flagstat_output(bam_path)
+            flagstat_b = RunSamtoolsCommands.get_samtools_flagstat_output(bam_path, srun, '')
         except RuntimeError as e:
             errors.append(str(e))
 
         try:
-            flagstat_c = RunSamtoolsCommands.get_samtools_flagstat_output(cram_path)
+            flagstat_c = RunSamtoolsCommands.get_samtools_flagstat_output(cram_path, srun, '')
         except RuntimeError as e:
             errors.append(str(e))
 
@@ -240,12 +256,12 @@ class CompareStatsForFiles:
         stats_fpath_c = cram_path + ".stats"
         stats_b, stats_c = None, None
         try:
-            stats_b = HandleSamtoolsStats.fetch_stats(bam_path, stats_fpath_b)
+            stats_b = HandleSamtoolsStats.fetch_stats(bam_path, stats_fpath_b, srun, '')
         except (ValueError, RuntimeError) as e:
             errors.append(str(e))
 
         try:
-            stats_c = HandleSamtoolsStats.fetch_stats(cram_path, stats_fpath_c)
+            stats_c = HandleSamtoolsStats.fetch_stats(cram_path, stats_fpath_c, srun, ref_path)
         except (ValueError, RuntimeError) as e:
             errors.append(str(e))
 
