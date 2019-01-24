@@ -1,7 +1,13 @@
 
-# bam2cram-check
+# bam2cram-check (fork)
 
 This package is for checking that the file format convertion between a BAM and a CRAM leaves the data unaffected. The checks rely on the comparison between samtools stats' (CHK field), and on samtools flagstat. In addition to this both files are samtools quickcheck-ed. The stats are generated for both files. However, if there is a .stats or .flagstat file in the directory where each file is, then it will use those.
+
+The aim of this fork is to make the package compliant for the usage I need:
+- first, be able to provide a fasta reference file to generate samtools stats on the cram file
+- second, make the package generate simple srun commands to be ran in slurm environnment
+
+The fork is added as a submodule into another script https://github.com/beboche/BamCramConvert which aims at converting bam to cram and cram to bam. bam2cram-check is used inside to check the conversion (possibly before deleting the original file).
 
 For running this you need:
 ```
@@ -14,7 +20,9 @@ Usage:
 python main.py -b <bam_file> -c <cram_file> -e <err_file> --log <log_file> -s -r <ref_file>
 ```
 New features:
--r R        File path to the genome reference fasta file
+
+-r          File path to the genome reference fasta file
+
 -s          run in slurm environnment (generates srun -N1 -c1 commands)
 
 
